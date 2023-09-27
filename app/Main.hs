@@ -31,5 +31,8 @@ main = do
             [(2,19),(1,19),(0,9),(0,19),(3,18),(0,20),(1,20),(0,20),(3,20),(4,16)]]
 
     let board = makeBoard boardInfo
+    printBoard board
+    let newBoard = fillMandatory board (1, 1)
+    printBoard newBoard
 
     putStrLn "Hello, what is your name?"
