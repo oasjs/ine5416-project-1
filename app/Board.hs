@@ -15,6 +15,7 @@ module Board (
     fillVerticals,
     isVertical,
     getFreeVertical,
+    backtrackingSolve,
     initialFill
 ) where
 
@@ -32,6 +33,7 @@ data Cell = Cell {
     value :: CellValue
     , definitive :: Bool
     , region :: CellRegion
+    , usedGuesses :: [CellValue]
     }
 
 newCell :: (CellValue, CellRegion) -> Cell
@@ -39,6 +41,7 @@ newCell (value, region) = Cell {
     value = value
     , definitive = value /= 0
     , region = region
+    , usedGuesses = []
     }
 
 makeBoard :: [[(CellValue, CellRegion)]] -> Matrix Cell
@@ -149,9 +152,11 @@ setVerticalCells board (x, y) values = do
                 setVerticalCells board (x + 1, y) values
 
 
-
 setDefinitiveCell :: Matrix Cell -> Pos -> CellValue -> Matrix Cell
-setDefinitiveCell board (x, y) value = setElem (Cell value True (region (getElem x y board))) (x, y) board
+setDefinitiveCell board (x, y) value = setElem (Cell value True (region (getElem x y board)) []) (x, y) board
+
+setCell :: Matrix Cell -> Pos -> CellValue -> Matrix Cell
+setCell board (x, y) value = setElem (Cell value False (region (getElem x y board)) []) (x, y) board
 
 -- | Fill the cells that have only one possible value
 fillMandatory :: Matrix Cell -> Pos -> Matrix Cell
@@ -165,6 +170,46 @@ fillMandatory board (x, y)
         xPos = x + (if yPos == 1 then 1 else 0)
         cell = getElem xPos yPos board
         possibleValues = getPossibleValues board (xPos, yPos)
+
+
+-- | Get the values that can be used as guesses for a cell
+getGuessValues :: Matrix Cell -> Pos -> [CellValue]
+getGuessValues board (x, y) = getPossibleValues board (x, y) \\ usedGuesses cell
+    where
+        cell = getElem x y board
+
+-- | Set the guess value for a cell and adds it to the guess list
+setCellGuess :: Matrix Cell -> Pos -> CellValue -> Matrix Cell
+setCellGuess board pos guess = setElem (Cell guess False (region cell) (guess : usedGuesses cell)) pos board
+    where
+        cell = uncurry getElem pos board
+
+-- | Solves the board using backtracking
+backtrackingSolve :: Matrix Cell -> Pos -> (Matrix Cell, Bool)
+backtrackingSolve board (x, y) = do
+        if definitive cell then
+            if x == ncols board && y == nrows board then
+                (board, True)
+            else
+            backtrackingSolve board (xPos, yPos + 1)
+        else
+            if null guesses then
+                (board, False)
+            else
+                if x == ncols board && y == nrows board then
+                    (newBoard, True)
+                else
+                    if snd solution then
+                        solution
+                    else
+                        backtrackingSolve board (xPos, yPos + 1)
+        where
+            yPos = if y == ncols board + 1 then 1 else y
+            xPos = x + (if yPos == 1 then 1 else 0)
+            cell = getElem xPos yPos board
+            guesses = getGuessValues board (xPos, yPos)
+            newBoard = setCellGuess board (xPos, yPos) (head guesses)
+            solution = backtrackingSolve newBoard (xPos, yPos + 1)
 
 
 changedCells :: Matrix Cell -> Matrix Cell -> Int
