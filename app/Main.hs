@@ -24,5 +24,5 @@ main = do
     let newBoard = initialFill board
     printBoard newBoard
 
-    let finalBoard = backtrackingSolve newBoard (1, 1)
+    let finalBoard = backtrackingSolve newBoard (0, 1)
     printBoard (fst finalBoard)
